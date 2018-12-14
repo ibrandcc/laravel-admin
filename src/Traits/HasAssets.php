@@ -27,7 +27,7 @@ trait HasAssets
         'vendor/laravel-admin/font-awesome/css/font-awesome.min.css',
         'vendor/laravel-admin/laravel-admin/laravel-admin.css',
         'vendor/laravel-admin/nprogress/nprogress.css',
-        'vendor/laravel-admin/sweetalert2/dist/sweetalert2.css',
+        'vendor/laravel-admin/sweetalert/dist/sweetalert.css',
         'vendor/laravel-admin/nestable/nestable.css',
         'vendor/laravel-admin/toastr/build/toastr.min.css',
         'vendor/laravel-admin/bootstrap3-editable/css/bootstrap-editable.css',
@@ -47,7 +47,7 @@ trait HasAssets
         'vendor/laravel-admin/nestable/jquery.nestable.js',
         'vendor/laravel-admin/toastr/build/toastr.min.js',
         'vendor/laravel-admin/bootstrap3-editable/js/bootstrap-editable.min.js',
-        'vendor/laravel-admin/sweetalert2/dist/sweetalert2.min.js',
+        'vendor/laravel-admin/sweetalert/dist/sweetalert.min.js',
         'vendor/laravel-admin/laravel-admin/laravel-admin.js',
     ];
 

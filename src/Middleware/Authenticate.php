@@ -18,16 +18,14 @@ class Authenticate
      */
     public function handle($request, Closure $next)
     {
-        $website = \Hyn\Tenancy\Facades\TenancyFacade::website();
-        $cookie_key = 'ibrand_saas_sso_' . $website->uuid;
-        if (!isset($_COOKIE[$cookie_key]) OR Auth::guard('admin')->guest()) {
+        if (!isset($_COOKIE['ibrand_log_uuid']) OR !$_COOKIE['ibrand_log_uuid']) {
+            $this->unAuthenticateHandle($request);
+        }
 
-            Auth::guard('admin')->logout();
-            Auth::guard('account')->logout();
-            $request->session()->flush();
-            $request->session()->regenerate();
-
-            return redirect('/account/login');
+        $uuid = $_COOKIE['ibrand_log_uuid'];
+        $cookie_key = 'ibrand_log_sso_' . $uuid;
+        if (!isset($_COOKIE[$cookie_key]) OR !$_COOKIE[$cookie_key] OR Auth::guard('admin')->guest()) {
+            $this->unAuthenticateHandle($request);
         }
 
         /*if (Auth::guard('admin')->guest() && !$this->shouldPassThrough($request)) {
@@ -62,5 +60,15 @@ class Authenticate
         }
 
         return false;
+    }
+
+    protected function unAuthenticateHandle($request)
+    {
+        Auth::guard('admin')->logout();
+        Auth::guard('account')->logout();
+        $request->session()->flush();
+        $request->session()->regenerate();
+
+        return redirect('/account/login');
     }
 }

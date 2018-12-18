@@ -12,15 +12,27 @@ class Authenticate
      * Handle an incoming request.
      *
      * @param \Illuminate\Http\Request $request
-     * @param \Closure                 $next
+     * @param \Closure $next
      *
      * @return mixed
      */
     public function handle($request, Closure $next)
     {
-        if (Auth::guard('admin')->guest() && !$this->shouldPassThrough($request)) {
-            return redirect()->guest(admin_base_path('auth/login'));
+        $website = \Hyn\Tenancy\Facades\TenancyFacade::website();
+        $cookie_key = 'ibrand_saas_sso_' . $website->uuid;
+        if (!isset($_COOKIE[$cookie_key]) OR Auth::guard('admin')->guest()) {
+
+            Auth::guard('admin')->logout();
+            Auth::guard('account')->logout();
+            $request->session()->flush();
+            $request->session()->regenerate();
+
+            return redirect('/account/login');
         }
+
+        /*if (Auth::guard('admin')->guest() && !$this->shouldPassThrough($request)) {
+            return redirect()->guest(admin_base_path('auth/login'));
+        }*/
 
         return $next($request);
     }

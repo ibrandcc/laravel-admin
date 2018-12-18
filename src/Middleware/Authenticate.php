@@ -5,7 +5,10 @@ namespace Encore\Admin\Middleware;
 use Closure;
 use Encore\Admin\Admin;
 use Encore\Admin\Auth\Database\Administrator;
+use Hyn\Tenancy\Contracts\Repositories\HostnameRepository;
+use Hyn\Tenancy\Repositories\WebsiteRepository;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 
 class Authenticate
 {
@@ -19,29 +22,30 @@ class Authenticate
      */
     public function handle($request, Closure $next)
     {
-        if (!isset($_COOKIE['ibrand_log_uuid']) OR !$_COOKIE['ibrand_log_uuid']) {
-            $this->unAuthenticateHandle($request);
+        if (!$request->cookie('ibrand_log_uuid')) {
+            return $this->unAuthenticateHandle($request);
         }
-
-        $uuid = $_COOKIE['ibrand_log_uuid'];
-        $cookie_key = 'ibrand_log_sso_user';
 
         $website = \Hyn\Tenancy\Facades\TenancyFacade::website();
         $current_uuid = $website->uuid;
 
-        if (!isset($_COOKIE[$cookie_key]) OR
-            !$_COOKIE[$cookie_key] OR
-            $uuid != $current_uuid
-        ) {
-            $this->unAuthenticateHandle($request);
+        $uuid = $request->cookie('ibrand_log_uuid');
+        $cookie_key = 'ibrand_log_sso_user';
+        if (!$request->cookie($cookie_key) OR $uuid != $current_uuid) {
+            return $this->unAuthenticateHandle($request);
         }
 
+        $environment = app()->make(\Hyn\Tenancy\Environment::class);
+        $environment->tenant($website);
+        config(['database.default' => 'tenant']);
+
         if (Auth::guard('admin')->guest()) {
-            $mobile = json_encode($_COOKIE[$cookie_key], true)['mobile'];
-            if ($admin = Administrator::where('mobile', $mobile)->first()) {
+            $mobile = json_decode($request->cookie($cookie_key), true)['mobile'];
+            $admin = Administrator::where('mobile', $mobile)->first();
+            if ($admin) {
                 Auth::guard('admin')->login($admin);
             }else{
-                $this->unAuthenticateHandle($request);
+                return $this->unAuthenticateHandle($request);
             }
         }
 
@@ -82,13 +86,12 @@ class Authenticate
     protected function unAuthenticateHandle($request)
     {
         Auth::guard('admin')->logout();
-        Auth::guard('account')->logout();
         $request->session()->flush();
         $request->session()->regenerate();
 
-        setcookie('ibrand_log_uuid', '', time() - 3600, '/', config('session.domain'), false, false);
-        setcookie('ibrand_log_sso_user', '', time() - 3600, '/', config('session.domain'), false, false);
+        Cookie::queue(Cookie::forget('ibrand_log_uuid'));
+        Cookie::queue(Cookie::forget('ibrand_log_sso_user'));
 
-        return redirect('/account/login');
+        return redirect(env('APP_URL').'/account/login');
     }
 }

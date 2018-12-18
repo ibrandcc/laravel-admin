@@ -4,6 +4,7 @@ namespace Encore\Admin\Middleware;
 
 use Closure;
 use Encore\Admin\Admin;
+use Encore\Admin\Auth\Database\Administrator;
 use Illuminate\Support\Facades\Auth;
 
 class Authenticate
@@ -23,9 +24,25 @@ class Authenticate
         }
 
         $uuid = $_COOKIE['ibrand_log_uuid'];
-        $cookie_key = 'ibrand_log_sso_' . $uuid;
-        if (!isset($_COOKIE[$cookie_key]) OR !$_COOKIE[$cookie_key] OR Auth::guard('admin')->guest()) {
+        $cookie_key = 'ibrand_log_sso_user';
+
+        $website = \Hyn\Tenancy\Facades\TenancyFacade::website();
+        $current_uuid = $website->uuid;
+
+        if (!isset($_COOKIE[$cookie_key]) OR
+            !$_COOKIE[$cookie_key] OR
+            $uuid != $current_uuid
+        ) {
             $this->unAuthenticateHandle($request);
+        }
+
+        if (Auth::guard('admin')->guest()) {
+            $mobile = json_encode($_COOKIE[$cookie_key], true)['mobile'];
+            if ($admin = Administrator::where('mobile', $mobile)->first()) {
+                Auth::guard('admin')->login($admin);
+            }else{
+                $this->unAuthenticateHandle($request);
+            }
         }
 
         /*if (Auth::guard('admin')->guest() && !$this->shouldPassThrough($request)) {
@@ -68,6 +85,9 @@ class Authenticate
         Auth::guard('account')->logout();
         $request->session()->flush();
         $request->session()->regenerate();
+
+        setcookie('ibrand_log_uuid', '', time() - 3600, '/', config('session.domain'), false, false);
+        setcookie('ibrand_log_sso_user', '', time() - 3600, '/', config('session.domain'), false, false);
 
         return redirect('/account/login');
     }

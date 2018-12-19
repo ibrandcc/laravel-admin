@@ -22,37 +22,40 @@ class Authenticate
      */
     public function handle($request, Closure $next)
     {
-        if (!$request->cookie('ibrand_log_uuid')) {
-            return $this->unAuthenticateHandle($request);
-        }
+        if(config('admin.backend.scenario')=='normal' || !config('admin.backend.scenario'))
+        {
+            if (Auth::guard('admin')->guest() && !$this->shouldPassThrough($request)) {
+                return redirect()->guest(admin_base_path('auth/login'));
+            }
 
-        $website = \Hyn\Tenancy\Facades\TenancyFacade::website();
-        $current_uuid = $website->uuid;
-
-        $uuid = $request->cookie('ibrand_log_uuid');
-        $cookie_key = 'ibrand_log_sso_user';
-        if (!$request->cookie($cookie_key) OR $uuid != $current_uuid) {
-            return $this->unAuthenticateHandle($request);
-        }
-
-        $environment = app()->make(\Hyn\Tenancy\Environment::class);
-        $environment->tenant($website);
-        config(['database.default' => 'tenant']);
-
-        if (Auth::guard('admin')->guest()) {
-            $mobile = json_decode($request->cookie($cookie_key), true)['mobile'];
-            $admin = Administrator::where('mobile', $mobile)->first();
-            if ($admin) {
-                Auth::guard('admin')->login($admin);
-            }else{
+        }else{
+            if (!$request->cookie('ibrand_log_uuid')) {
                 return $this->unAuthenticateHandle($request);
             }
+
+            $website = \Hyn\Tenancy\Facades\TenancyFacade::website();
+            $current_uuid = $website->uuid;
+
+            $uuid = $request->cookie('ibrand_log_uuid');
+            $cookie_key = 'ibrand_log_sso_user';
+            if (!$request->cookie($cookie_key) OR $uuid != $current_uuid) {
+                return $this->unAuthenticateHandle($request);
+            }
+
+            $environment = app()->make(\Hyn\Tenancy\Environment::class);
+            $environment->tenant($website);
+            config(['database.default' => 'tenant']);
+
+            if (Auth::guard('admin')->guest()) {
+                $mobile = json_decode($request->cookie($cookie_key), true)['mobile'];
+                $admin = Administrator::where('mobile', $mobile)->first();
+                if ($admin) {
+                    Auth::guard('admin')->login($admin);
+                }else{
+                    return $this->unAuthenticateHandle($request);
+                }
+            }
         }
-
-        /*if (Auth::guard('admin')->guest() && !$this->shouldPassThrough($request)) {
-            return redirect()->guest(admin_base_path('auth/login'));
-        }*/
-
         return $next($request);
     }
 

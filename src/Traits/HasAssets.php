@@ -48,7 +48,7 @@ trait HasAssets
         'vendor/laravel-admin/toastr/build/toastr.min.js',
         'vendor/laravel-admin/bootstrap3-editable/js/bootstrap-editable.min.js',
         'vendor/laravel-admin/sweetalert/dist/sweetalert.min.js',
-        'vendor/laravel-admin/laravel-admin/laravel-admin.js',
+        //'vendor/laravel-admin/laravel-admin/laravel-admin.js',
     ];
 
     /**
